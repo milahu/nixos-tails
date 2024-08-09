@@ -1,0 +1,11 @@
+https://gitlab.tails.boum.org/tails/tails
+
+https://nix.dev/tutorials/nixos/building-bootable-iso-image.html
+
+https://nixos.wiki/wiki/Creating_a_NixOS_live_CD
+
+https://github.com/nix-community/nixos-generators#raw-and-raw-efi
+
+https://haseebmajid.dev/posts/2024-02-04-how-to-create-a-custom-nixos-iso/
+
+https://ash64.eu/blog/2022/building-custom-nixos-isos/
