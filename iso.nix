@@ -93,7 +93,25 @@ in
     config.allowUnfree = true;
   };
 
+  #nixpkgs.overlays
 
+  nixpkgs.config.packageOverrides = pkgs: {
+    nur = import (
+      #builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz"
+      builtins.fetchTarball {
+        url = (
+          let
+            rev = "758483969436e4a5f202760e7f158704572df459";
+          in
+          "https://github.com/nix-community/NUR/archive/${rev}.tar.gz"
+        );
+        sha256 = "sha256:04nh523w42gi8hh7vadz4jcl0qmhc60z2zgx2k7pjs96vaxfza48";
+      }
+    ) {
+      inherit pkgs;
+    };
+
+  };
 
   nix = {
     # enable flakes by default
@@ -122,6 +140,90 @@ in
     hostName = "amnesia";
   };
 
+/*
+  networking = {
+    #hostId = "deadbeef";
+    #hostName = "example";
+    networkmanager.enable = true;
+    useDHCP = false;
+  };
+*/
+
+
+
+
+  # https://nixos.wiki/wiki/Tor
+  services.tor = {
+    # slow (but secure) socks proxy on port 9050: one circuit per destination address
+    enable = true;
+
+    client = {
+
+      # fast (but risky) socks proxy on port 9063 for https: new circuit every 10 minutes
+      enable = true;
+
+      # this will add:
+      # settings.TransPort = [{ addr = "127.0.0.1"; port = 9040; }]
+      transparentProxy.enable = true;
+
+      # TODO restore
+      # TODO test
+      /*
+      curl -s https://check.torproject.org/api/ip
+      */
+      transparentProxy.routeAllTraffic = true;
+
+      # patchedpackages.curl is wrong?
+      # no. blame .curlrc
+
+      #transparentProxy.externalInterface = "ve-milahuuuc365"; # TODO? via "ve-*"
+      transparentProxy.externalInterface = "eth0"; # or eth0@if4
+      #transparentProxy.externalInterface = "eth0@if4";
+      # this will add:
+      # settings.DNSPort = [{ addr = "127.0.0.1"; port = 9053; }];
+      # settings.AutomapHostsOnResolve = true;
+      dns.enable = true;
+
+    };
+    # disable by-country statistics
+    enableGeoIP = false;
+    #openFirewall = true;
+    settings = {
+      #ORPort = 9000;
+    };
+  };
+
+  # https://gitea.com/curben/blog/src/branch/master/source/_posts/tor-hidden-onion-nixos.md
+  services.tor.relay.onionServices = {
+    # gitea server
+    # keys are stored in /var/lib/tor/onion
+    "TODO" = {
+      map = [
+        { port = 80; target = { port = 80; }; } # lighttpd
+      ];
+
+      # FIXME implement this
+      # no. run tor + gitea in a container
+      #useSeparateTorProcess = true;
+
+      # ... or default
+      # useSeparateTorProcess = null;
+      # and disable the warning with
+      #useSeparateTorProcess = false;
+
+      #version = 3;
+      settings = {
+        #TODO default in tor-insecure
+        # FIXME this requires tor.client = false
+        # https://github.com/NixOS/nixpkgs/pull/48625
+        #HiddenServiceSingleHopMode = true; # NON ANONYMOUS. use tor only for NAT punching
+        #HiddenServiceNonAnonymousMode = true; # TODO verify. use extraConfig?
+        #SocksPort = 0;
+        #HiddenServicePort = 80; # ?
+      };
+    };
+  };
+
 
 
   /*
@@ -145,6 +247,73 @@ in
   services.journald.extraConfig = ''
     SystemMaxUse=20M
   '';
+
+
+
+  # Set your time zone.
+  time.timeZone = "Europe/Berlin";
+
+  # locale
+  i18n.defaultLocale = "en_US.UTF-8";
+  i18n.extraLocaleSettings = {
+    LC_MESSAGES = "en_US.UTF-8";
+    LC_TIME = "de_DE.UTF-8";
+    LC_CTYPE = "en_US.UTF-8";
+    # TODO print layout + time format
+  };
+
+  # The global useDHCP flag is deprecated, therefore explicitly set to false here.
+  # Per-interface useDHCP will be mandatory in the future, so this generated config
+  # replicates the default behaviour.
+  networking.useDHCP = false;
+
+  #networking.interfaces.enp0s25.useDHCP = true;
+  #networking.interfaces.enp0s25.useDHCP = false;
+  #networking.interfaces.wls1.useDHCP = true; # wifi
+
+  # Configure network proxy if necessary
+  # networking.proxy.default = "http://user:password@proxy:port/";
+  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
+
+  # FIXME networkmanager breaks br0 for container networking
+  networking.networkmanager.enable = true;
+  # https://nlewo.github.io/nixos-manual-sphinx/configuration/network-manager.xml.html
+  # https://developer-old.gnome.org/NetworkManager/stable/NetworkManager.conf.html#device-spec
+  # networking.networkmanager.unmanaged  = [ "*" "except:type:wwan" "except:type:gsm" ]; # TODO why "*" ?!
+  networking.networkmanager.unmanaged  = [
+    # TODO move this to containers, avoid globbing
+    "interface-name:br*" # br0
+    "interface-name:ve-*" # ve-milahuuuc365
+    "interface-name:vb-*" # vb-milahuuuc365
+    # TODO move this to docker, avoid globbing
+    "interface-name:docker*" # docker0
+  ];
+
+  # bypass networking.networkmanager
+  #networking.defaultGateway = "192.168.178.1";
+
+  # Select internationalisation properties.
+  # i18n.defaultLocale = "en_US.UTF-8";
+
+  console.keyMap = "de";
+  console.font = "ter-i32b"; # large font
+  #console.font = "Lat2-Terminus16";
+  #console.packages = options.console.packages.default ++ [ pkgs.terminus_font ];
+  #console.packages = console.packages.default ++ [ pkgs.terminus_font ];
+  console.packages = [ pkgs.terminus_font ];
+  console.earlySetup = true; # set font early in boot
+
+  services.xserver.enable = true;
+  # Configure keymap in X11
+  services.xserver.xkb.layout = "de";
+  services.xserver.xkb.options  = "eurosign:e";
+  services.xserver.videoDrivers = [ "intel" ];
+  #services.xserver.useGlamor = true; # TODO?
+
+  #services.xserver.displayManager.autoLogin.enable = true;
+  #services.xserver.displayManager.autoLogin.user = "user";
+
+
 
   environment.variables = {
     # fix: curl: Not resolving .onion address (RFC 7686)
@@ -253,7 +422,6 @@ in
 
 
   # === KDE SDDM ===
-  /*
   # kde login
   #services.xserver.displayManager.sddm.enable = true;
   services.displayManager.sddm.enable = true;
@@ -264,7 +432,6 @@ in
   # broken since setting dpi to 144 ... login hangs with black screen
   # broken. desktop hangs again and again ...
   # -> $HOME/bin/plasmashell-restart.sh
-  */
 
 
 
@@ -277,6 +444,12 @@ in
 
 
 
+  # no
+  # tails linux has gnome desktop by default
+  # but i hate gnome...
+  # gnome is too "simple"...
+  # gnome is too much "like macos but less perfect"
+  /*
   # gnome login
   # broken: display-manager.service hangs at "starting X11 server..."
   services.xserver.displayManager.gdm.enable = true;
@@ -317,6 +490,7 @@ in
   services.udev.packages = with pkgs; [
     gnome3.gnome-settings-daemon
   ];
+  */
 
 
 
@@ -335,12 +509,14 @@ in
 
     # chat
     element-desktop # matrix. heavy...
+    session-desktop
     tdesktop # telegram
     pidgin
     pidgin-otr # off the record
     #(pidgin.withPlugins (p: with p; [ ... ])) # ?
     hexchat # irc
-    nur.repos.milahu.ricochet-refresh
+    #bitmessage # TODO
+    #zeronet # FIXME insecure
 
     linuxPackages.cpupower
 
@@ -363,8 +539,11 @@ in
     nano
     neovim
 
+    # based on tor
     tor-browser
     onionshare
+    nur.repos.milahu.ricochet-refresh
+    # TODO more
 
     mpv
 
@@ -402,7 +581,6 @@ in
     moreutils # sponge: soak up stdin/write to file
 
     parallel-full
-
 
     unzip
     zip # deflate
@@ -448,8 +626,8 @@ in
 
     spectacle # screenshot
 
-
-
+    vscodium
+    # TODO nixos configuration "nixd" "vscodium" "home-manager" "settings.json" "nix.serverSettings"
 
     yt-dlp
     #nur.repos.milahu.yt-dlp
@@ -546,6 +724,7 @@ in
     nss.tools # certutil to add certs to $HOME/.pki
 
     nano-wallet # nanocoin, nanocurrency
+    #nur.repos.milahu.nano-node # FIXME NUR eval error
     monero monero-gui
     # TODO haveno
 
@@ -640,9 +819,9 @@ in
       "libvirtd" # virt-manager, virtualbox
     ];
   };
-  home-manager.users."amnesia" = import ./home.nix;
 
-
+  # TODO
+  #home-manager.users."amnesia" = import ./home.nix;
 
   # https://nixos.wiki/wiki/Fonts
   fonts.packages = with pkgs; [
@@ -682,8 +861,8 @@ in
     enableSSHSupport = true; # /etc/ssh/ssh_config
     # fix? gpg: agent_genkey failed: No pinentry
     # todo: also add pinentry to env pkgs
-    #pinentryPackage = pkgs.pinentry-qt; # kde
-    pinentryPackage = pkgs.pinentry-gnome3; # gnome
+    pinentryPackage = pkgs.pinentry-qt; # kde
+    #pinentryPackage = pkgs.pinentry-gnome3; # gnome
     #pinentryPackage = pkgs.pinentry-gtk2; # gnome
   };
 
