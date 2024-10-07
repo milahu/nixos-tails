@@ -87,6 +87,17 @@ let user set tor bridges, etc
 
 
 
+#### browser bookmarks
+
+- tor.taxi
+- dark.fail
+- erowid.com
+- seedfinder.eu
+- wiki.tripsit.me
+- psychonautwiki.org
+
+
+
 ### make this work on 32bit hardware
 
 if this project should be relevant in the future,
