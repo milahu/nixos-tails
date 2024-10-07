@@ -261,3 +261,11 @@ Puppy Linux could be an option if nothing else works and you want the lightest d
   - [Spectrum OS](https://spectrum-os.org/) - process isolation
   - [jollheef/appvm](https://github.com/jollheef/appvm) - process isolation
 - [Create squashfs iso with some persistence?](https://discourse.nixos.org/t/create-squashfs-iso-with-some-persistence/5787)
+
+
+
+## mirrors
+
+- https://github.com/milahu/nixos-tails
+- http://it7otdanqu7ktntxzm427cba6i53w6wlanlh23v5i3siqmos47pzhvyd.onion/milahu/nixos-tails
+- http://gg6zxtreajiijztyy5g6bt5o6l3qu32nrg7eulyemlhxwwl6enk6ghad.onion/milahu/nixos-tails
